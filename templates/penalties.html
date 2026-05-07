@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Overdue Penalties — IBS{% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center mb-4 gap-3">
+  <div style="width:5px;height:36px;background:#dc2626;border-radius:3px;"></div>
+  <div>
+    <h4 class="mb-0" style="color:#991b1b;">Overdue Penalties</h4>
+    <small class="text-muted">All instalments past their due date with accruing penalties.</small>
+  </div>
+</div>
+
+<!-- Summary cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3 text-center">
+      <i class="bi bi-exclamation-circle-fill mb-1" style="font-size:1.4rem;color:#dc2626;"></i>
+      <div class="stat-num" style="color:#dc2626;">{{ overdue_items|length }}</div>
+      <div class="small text-muted">Overdue Instalments</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3 text-center">
+      <i class="bi bi-people-fill mb-1" style="font-size:1.4rem;color:var(--ibs-green);"></i>
+      <div class="stat-num">{{ overdue_items|map(attribute=0)|map(attribute='id')|unique|list|length }}</div>
+      <div class="small text-muted">Affected Loans</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3 text-center">
+      <i class="bi bi-cash-stack mb-1" style="font-size:1.4rem;color:#d97706;"></i>
+      <div class="stat-num" style="font-size:1.2rem;color:#d97706;">
+        {{ '{:,.0f}'.format(overdue_items|sum(attribute=1)|map(attribute='penalty_amount')|sum if overdue_items else 0) }}
+      </div>
+      <div class="small text-muted">Total Penalties ({{ currency }})</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3 text-center">
+      <i class="bi bi-wallet2 mb-1" style="font-size:1.4rem;color:#dc2626;"></i>
+      {% set total_outstanding = namespace(val=0) %}
+      {% for loan, s in overdue_items %}
+        {% set total_outstanding.val = total_outstanding.val + [(s.amount_due or 0) - (s.amount_paid or 0), 0]|max %}
+      {% endfor %}
+      <div class="stat-num" style="font-size:1.2rem;color:#dc2626;">
+        {{ '{:,.0f}'.format(total_outstanding.val) }}
+      </div>
+      <div class="small text-muted">Total Overdue ({{ currency }})</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header-ibs d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-table me-2"></i>Overdue Instalment Detail</span>
+    <small style="font-weight:400;color:rgba(255,255,255,.75);">Sorted by due date (oldest first)</small>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Loan #</th>
+          <th>Applicant</th>
+          <th>Contact</th>
+          <th class="text-center">Inst.</th>
+          <th>Due Date</th>
+          <th class="text-end">Amount Due</th>
+          <th class="text-end">Paid</th>
+          <th class="text-end">Outstanding</th>
+          <th class="text-end text-danger">Penalty</th>
+          <th>Days Overdue</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for loan, s in overdue_items %}
+        {% set outstanding = [(s.amount_due or 0) - (s.amount_paid or 0), 0]|max %}
+        {% set days_over = (today|default(now())).__class__.today() %}
+        <tr style="background:#fff5f5;">
+          <td>
+            <a href="{{ url_for('loan_detail', loan_id=loan.id) }}"
+               class="fw-semibold text-decoration-none" style="color:var(--ibs-green);">
+              #{{ loan.id }}
+            </a>
+          </td>
+          <td>
+            <div class="fw-semibold" style="color:var(--ibs-green);">{{ loan.applicant_name }}</div>
+            <small class="text-muted">{{ loan.loan_type }}</small>
+          </td>
+          <td>
+            <small class="text-muted">{{ loan.applicant_email }}</small><br>
+            {% if loan.applicant_phone %}
+              <small class="text-success"><i class="bi bi-whatsapp me-1"></i>{{ loan.applicant_phone }}</small>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            <span class="badge badge-overdue tier-badge">#{{ s.installment_number }}</span>
+          </td>
+          <td class="text-danger fw-semibold">{{ s.due_date.strftime('%d %b %Y') }}</td>
+          <td class="text-end">{{ '{:,.0f}'.format(s.amount_due) }}</td>
+          <td class="text-end text-success">{{ '{:,.0f}'.format(s.amount_paid or 0) }}</td>
+          <td class="text-end fw-semibold text-danger">{{ '{:,.0f}'.format(outstanding) }}</td>
+          <td class="text-end fw-bold text-danger">{{ '{:,.0f}'.format(s.penalty_amount or 0) }}</td>
+          <td>
+            {% set days = (s.due_date.__class__.today() - s.due_date).days %}
+            <span class="badge" style="background:#dc2626;color:#fff;">{{ days }}d</span>
+          </td>
+          <td>
+            <a href="{{ url_for('loan_detail', loan_id=loan.id) }}#tab-deposits"
+               class="btn btn-sm btn-ibs" title="Record payment">
+              <i class="bi bi-cash-coin"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="11" class="text-center text-muted py-5">
+            <i class="bi bi-check-circle-fill text-success d-block fs-2 mb-2"></i>
+            No overdue instalments — all loans are on track.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

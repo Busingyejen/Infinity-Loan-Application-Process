@@ -2,7 +2,6 @@
 {% block title %}New Loan Application — IBS{% endblock %}
 {% block content %}
 
-<!-- Page heading -->
 <div class="d-flex align-items-center mb-4 gap-3">
   <div style="width:5px;height:36px;background:var(--ibs-gold);border-radius:3px;"></div>
   <div>
@@ -12,12 +11,9 @@
 </div>
 
 <div class="row g-4">
-  <!-- Form -->
   <div class="col-lg-8">
     <div class="card">
-      <div class="card-header-ibs">
-        <i class="bi bi-file-earmark-text me-2"></i>Application Form
-      </div>
+      <div class="card-header-ibs"><i class="bi bi-file-earmark-text me-2"></i>Application Form</div>
       <div class="card-body p-4">
         <form method="POST" novalidate>
 
@@ -31,6 +27,17 @@
               <label class="form-label">Email Address <span class="text-danger">*</span></label>
               <input type="email" name="applicant_email" class="form-control" required>
             </div>
+            <div class="col-sm-6">
+              <label class="form-label">WhatsApp / Phone Number</label>
+              <div class="input-group">
+                <span class="input-group-text" style="background:var(--ibs-gold-light);color:var(--ibs-green);">
+                  <i class="bi bi-whatsapp"></i>
+                </span>
+                <input type="tel" name="applicant_phone" class="form-control"
+                       placeholder="+256 700 000 000">
+              </div>
+              <small class="text-muted">Used for repayment reminders &amp; overdue alerts.</small>
+            </div>
           </div>
 
           <hr class="gold-divider">
@@ -40,22 +47,20 @@
               <label class="form-label">Loan Type <span class="text-danger">*</span></label>
               <select name="loan_type" class="form-select" required>
                 <option value="" disabled selected>Select type…</option>
-                {% for lt in loan_types %}
-                  <option value="{{ lt }}">{{ lt }}</option>
-                {% endfor %}
+                {% for lt in loan_types %}<option value="{{ lt }}">{{ lt }}</option>{% endfor %}
               </select>
             </div>
             <div class="col-sm-6">
               <label class="form-label">Loan Amount <span class="text-danger">*</span></label>
               <div class="input-group">
                 <span class="input-group-text fw-semibold" style="background:var(--ibs-gold-light);color:var(--ibs-green);">{{ currency }}</span>
-                <input type="number" name="amount" class="form-control" min="0" step="0.01" placeholder="0.00" required>
+                <input type="number" name="amount" id="amount" class="form-control" min="0" step="1" placeholder="0" required oninput="updateEMI()">
               </div>
             </div>
             <div class="col-sm-6">
               <label class="form-label">Interest Rate (% p.a.) <span class="text-danger">*</span></label>
               <div class="input-group">
-                <input type="number" name="interest_rate" class="form-control" min="0" step="0.01" placeholder="0.00" required>
+                <input type="number" name="interest_rate" id="interest_rate" class="form-control" min="0" step="0.01" placeholder="0.00" required oninput="updateEMI()">
                 <span class="input-group-text" style="background:var(--ibs-gold-light);color:var(--ibs-green);">%</span>
               </div>
             </div>
@@ -63,8 +68,26 @@
               <label class="form-label">Processing Fees <span class="text-danger">*</span></label>
               <div class="input-group">
                 <span class="input-group-text fw-semibold" style="background:var(--ibs-gold-light);color:var(--ibs-green);">{{ currency }}</span>
-                <input type="number" name="processing_fees" class="form-control" min="0" step="0.01" placeholder="0.00" required>
+                <input type="number" name="processing_fees" class="form-control" min="0" step="1" placeholder="0" required>
               </div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label">Repayment Period <span class="text-danger">*</span></label>
+              <select name="repayment_period" id="repayment_period" class="form-select" required onchange="updateEMI()">
+                <option value="" disabled selected>Select period…</option>
+                {% for p in repayment_periods %}
+                  <option value="{{ p }}">{{ p }} months</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label">Est. Monthly Repayment</label>
+              <div class="input-group">
+                <span class="input-group-text fw-semibold" style="background:var(--ibs-gold-light);color:var(--ibs-green);">{{ currency }}</span>
+                <input type="text" id="emi_display" class="form-control fw-bold"
+                       style="color:var(--ibs-green);" readonly value="—">
+              </div>
+              <small class="text-muted">Calculated automatically from amount, rate &amp; period.</small>
             </div>
             <div class="col-12">
               <label class="form-label">Purpose / Notes</label>
@@ -84,37 +107,67 @@
     </div>
   </div>
 
-  <!-- Approval flow sidebar -->
+  <!-- Sidebar -->
   <div class="col-lg-4">
-    <div class="card h-100">
-      <div class="card-header-ibs">
-        <i class="bi bi-diagram-3 me-2"></i>Approval Flow
-      </div>
+    <div class="card mb-3">
+      <div class="card-header-ibs"><i class="bi bi-diagram-3 me-2"></i>Approval Flow</div>
       <div class="card-body p-3">
         {% for tier, label, desc in [
-            ('I',  'Loan Officer I', 'Initial review & eligibility check'),
-            ('2',  'Loan Officer 2', 'Secondary credit assessment'),
-            ('3',  'Loan Officer 3', 'Final approval & disbursement'),
+            ('I','Loan Officer I','Initial review & eligibility check'),
+            ('2','Loan Officer 2','Secondary credit assessment'),
+            ('3','Loan Officer 3','Final approval & disbursement'),
         ] %}
         <div class="d-flex align-items-start mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
-          <div class="me-3 text-center">
-            <div style="width:36px;height:36px;background:var(--ibs-green);color:#fff;
-                        border-radius:50%;line-height:36px;font-weight:700;font-size:.9rem;">{{ tier }}</div>
+          <div class="me-3 text-center flex-shrink-0">
+            <div style="width:36px;height:36px;background:var(--ibs-green);color:#fff;border-radius:50%;line-height:36px;font-weight:700;font-size:.9rem;">{{ tier }}</div>
           </div>
           <div>
-            <div class="fw-semibold" style="color:var(--ibs-green);font-size:.92rem;">{{ label }}</div>
+            <div class="fw-semibold" style="color:var(--ibs-green);font-size:.9rem;">{{ label }}</div>
             <small class="text-muted">{{ desc }}</small>
           </div>
         </div>
         {% endfor %}
-        <div class="mt-2 p-2 rounded" style="background:var(--ibs-gold-light);">
+        <div class="p-2 rounded" style="background:var(--ibs-gold-light);">
           <small style="color:var(--ibs-green);">
-            <i class="bi bi-info-circle me-1"></i>
-            Each officer receives a secure email link. Rejection at any stage closes the application.
+            <i class="bi bi-whatsapp me-1"></i>Each officer is notified by <strong>email + WhatsApp</strong>.
+            Rejection at any stage closes the application.
           </small>
         </div>
       </div>
     </div>
+
+    <div class="card">
+      <div class="card-header-ibs"><i class="bi bi-info-circle me-2"></i>Repayment Info</div>
+      <div class="card-body p-3">
+        <small class="text-muted">
+          <i class="bi bi-calendar-check me-1" style="color:var(--ibs-gold);"></i>
+          Repayments are due on the <strong>same date each month</strong> as the disbursement date.<br><br>
+          <i class="bi bi-exclamation-triangle me-1" style="color:#dc2626;"></i>
+          A penalty of <strong>{{ "%.0f"|format(5) }}% per month</strong> applies to overdue balances.
+        </small>
+      </div>
+    </div>
   </div>
 </div>
+
+<script>
+function calculateEMI(P, annualRate, n) {
+  if (!P || !n) return 0;
+  const r = annualRate / 100 / 12;
+  if (r === 0) return P / n;
+  return P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+}
+function updateEMI() {
+  const P = parseFloat(document.getElementById('amount').value) || 0;
+  const r = parseFloat(document.getElementById('interest_rate').value) || 0;
+  const n = parseInt(document.getElementById('repayment_period').value) || 0;
+  const el = document.getElementById('emi_display');
+  if (P && n) {
+    const emi = calculateEMI(P, r, n);
+    el.value = emi.toLocaleString('en-UG', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+  } else {
+    el.value = '—';
+  }
+}
+</script>
 {% endblock %}

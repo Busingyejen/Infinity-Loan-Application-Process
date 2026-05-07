@@ -8,136 +8,338 @@
   </a>
 </div>
 
-{% set color_map = {
-  'Pending Tier 1': '#d97706',
-  'Pending Tier 2': '#0891b2',
-  'Pending Tier 3': '#1B6B35',
-  'Approved':       '#15803d',
-  'Rejected':       '#dc2626'
-} %}
+{% set sc = status_colors %}
 
-<div class="row g-4">
-  <!-- Loan info -->
-  <div class="col-lg-7">
-    <div class="card">
-      <div class="card-header-ibs d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-file-earmark-text me-2"></i>Application #{{ loan.id }}</span>
-        <span class="badge" style="background:{{ color_map.get(loan.status,'#666') }};font-size:.82rem;">
-          {{ loan.status }}
-        </span>
-      </div>
-      <div class="card-body p-4">
-        <small class="text-muted">Submitted {{ loan.submitted_at.strftime('%d %b %Y, %H:%M') }} UTC</small>
-
-        <hr class="gold-divider">
-        <p class="section-label">Applicant</p>
-        <div class="row mb-3">
-          <div class="col-sm-6 fw-semibold" style="color:var(--ibs-green);">{{ loan.applicant_name }}</div>
-          <div class="col-sm-6 text-muted">{{ loan.applicant_email }}</div>
-        </div>
-
-        <hr class="gold-divider">
-        <p class="section-label">Loan Details</p>
-        <div class="row g-3 mb-3">
-          <div class="col-6 col-sm-3">
-            <div class="rounded p-2 text-center" style="background:var(--ibs-gold-light);">
-              <div class="small text-muted">Type</div>
-              <div class="fw-semibold" style="color:var(--ibs-green);">{{ loan.loan_type }}</div>
-            </div>
-          </div>
-          <div class="col-6 col-sm-3">
-            <div class="rounded p-2 text-center" style="background:var(--ibs-gold-light);">
-              <div class="small text-muted">Amount</div>
-              <div class="fw-semibold" style="color:var(--ibs-green);">{{ currency }} {{ "{:,.0f}".format(loan.amount) }}</div>
-            </div>
-          </div>
-          <div class="col-6 col-sm-3">
-            <div class="rounded p-2 text-center" style="background:var(--ibs-gold-light);">
-              <div class="small text-muted">Rate</div>
-              <div class="fw-semibold" style="color:var(--ibs-green);">{{ loan.interest_rate }}% p.a.</div>
-            </div>
-          </div>
-          <div class="col-6 col-sm-3">
-            <div class="rounded p-2 text-center" style="background:var(--ibs-gold-light);">
-              <div class="small text-muted">Fees</div>
-              <div class="fw-semibold" style="color:var(--ibs-green);">{{ currency }} {{ "{:,.0f}".format(loan.processing_fees) }}</div>
-            </div>
-          </div>
-        </div>
-
-        {% if loan.purpose %}
-        <p class="section-label">Purpose</p>
-        <p class="text-muted mb-0">{{ loan.purpose }}</p>
-        {% endif %}
-      </div>
-    </div>
+<!-- Header row -->
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="mb-0" style="color:var(--ibs-green);">Loan Application #{{ loan.id }}</h4>
+    <small class="text-muted">Submitted {{ loan.submitted_at.strftime('%d %b %Y, %H:%M') }} UTC</small>
   </div>
+  <span class="badge fs-6 px-3 py-2"
+    style="background:{{ sc.get(loan.status,'#666') }};color:#fff;">
+    {{ loan.status }}
+  </span>
+</div>
 
-  <!-- Approval timeline -->
-  <div class="col-lg-5">
-    <div class="card">
-      <div class="card-header-ibs">
-        <i class="bi bi-clock-history me-2"></i>Approval Timeline
-      </div>
-      <div class="card-body p-4">
-        {% for tier in [1, 2, 3] %}
-        {% set action   = loan.tier1_action  if tier==1 else (loan.tier2_action  if tier==2 else loan.tier3_action)  %}
-        {% set comment  = loan.tier1_comment if tier==1 else (loan.tier2_comment if tier==2 else loan.tier3_comment) %}
-        {% set acted_at = loan.tier1_at      if tier==1 else (loan.tier2_at      if tier==2 else loan.tier3_at)      %}
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" id="loanTabs">
+  <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-details">
+    <i class="bi bi-file-earmark-text me-1"></i>Details & Approval
+  </a></li>
+  {% if loan.disbursement_date %}
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-schedule">
+    <i class="bi bi-calendar3 me-1"></i>Repayment Schedule
+    {% set od = loan.schedule|selectattr('status','equalto','Overdue')|list|length %}
+    {% if od %}<span class="badge bg-danger ms-1">{{ od }}</span>{% endif %}
+  </a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-deposits">
+    <i class="bi bi-cash-coin me-1"></i>Deposits
+    <span class="badge ms-1" style="background:var(--ibs-green);">{{ loan.deposits|length }}</span>
+  </a></li>
+  {% endif %}
+</ul>
 
-        {% if action == 'approve' %}
-          {% set dot_color = 'background:var(--ibs-green)' %}
-        {% elif action == 'reject' %}
-          {% set dot_color = 'background:#dc2626' %}
-        {% elif loan.current_tier == tier and loan.status not in ('Approved','Rejected') %}
-          {% set dot_color = 'background:var(--ibs-gold)' %}
-        {% else %}
-          {% set dot_color = 'background:#ccc' %}
-        {% endif %}
+<div class="tab-content">
 
-        <div class="timeline-step">
-          <div class="timeline-dot" style="{{ dot_color }}"></div>
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <span class="fw-semibold" style="font-size:.9rem;color:var(--ibs-green);">
-                {{ tier_labels[tier] }}
-              </span>
-              {% if action %}
-                <span class="badge ms-2 tier-badge"
-                  style="background:{{ 'var(--ibs-green)' if action=='approve' else '#dc2626' }};color:#fff;">
-                  {{ action|capitalize }}d
-                </span>
-              {% elif loan.current_tier == tier and loan.status not in ('Approved','Rejected') %}
-                <span class="badge ms-2 tier-badge" style="background:var(--ibs-gold);color:#fff;">Pending</span>
-              {% else %}
-                <span class="badge ms-2 tier-badge bg-light text-muted border">Waiting</span>
-              {% endif %}
+  <!-- ── Tab 1: Details ─────────────────────────────────────────────────── -->
+  <div class="tab-pane fade show active" id="tab-details">
+    <div class="row g-4">
+      <!-- Loan info -->
+      <div class="col-lg-7">
+        <div class="card mb-4">
+          <div class="card-header-ibs"><i class="bi bi-person me-2"></i>Applicant & Loan Info</div>
+          <div class="card-body p-4">
+            <p class="section-label">Applicant</p>
+            <div class="row mb-3 g-2">
+              <div class="col-sm-4 fw-semibold" style="color:var(--ibs-green);">{{ loan.applicant_name }}</div>
+              <div class="col-sm-4 text-muted">{{ loan.applicant_email }}</div>
+              <div class="col-sm-4 text-muted">
+                {% if loan.applicant_phone %}
+                  <i class="bi bi-whatsapp text-success me-1"></i>{{ loan.applicant_phone }}
+                {% endif %}
+              </div>
             </div>
-            {% if acted_at %}
-            <small class="text-muted">{{ acted_at.strftime('%d %b %Y') }}</small>
+            <hr class="gold-divider">
+            <p class="section-label">Loan Details</p>
+            <div class="row g-3 mb-3">
+              {% for label, val in [
+                  ('Type', loan.loan_type),
+                  ('Amount', currency ~ ' ' ~ '{:,.0f}'.format(loan.amount)),
+                  ('Rate', loan.interest_rate|string ~ '% p.a.'),
+                  ('Fees', currency ~ ' ' ~ '{:,.0f}'.format(loan.processing_fees)),
+                  ('Period', (loan.repayment_period|string ~ ' months') if loan.repayment_period else '—'),
+                  ('Monthly EMI', (currency ~ ' ' ~ '{:,.0f}'.format(loan.monthly_emi)) if loan.repayment_period else '—'),
+              ] %}
+              <div class="col-6 col-sm-4">
+                <div class="rounded p-2 text-center" style="background:var(--ibs-gold-light);">
+                  <div class="small text-muted">{{ label }}</div>
+                  <div class="fw-semibold" style="color:var(--ibs-green);font-size:.88rem;">{{ val }}</div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% if loan.purpose %}
+            <p class="section-label">Purpose</p>
+            <p class="text-muted mb-0">{{ loan.purpose }}</p>
             {% endif %}
           </div>
-          {% if comment %}
-          <div class="mt-1 text-muted" style="font-size:.84rem;">
-            <i class="bi bi-chat-left-text me-1"></i>{{ comment }}
-          </div>
-          {% endif %}
         </div>
-        {% endfor %}
 
+        <!-- Disbursement -->
         {% if loan.status == 'Approved' %}
-        <div class="mt-3 p-2 rounded text-center"
-             style="background:#d1fae5;color:#065f46;font-size:.88rem;font-weight:600;">
-          <i class="bi bi-check-circle-fill me-1"></i>Fully approved by all 3 officers.
-        </div>
-        {% elif loan.status == 'Rejected' %}
-        <div class="mt-3 p-2 rounded text-center"
-             style="background:#fee2e2;color:#991b1b;font-size:.88rem;font-weight:600;">
-          <i class="bi bi-x-circle-fill me-1"></i>Application rejected.
+        <div class="card">
+          <div class="card-header-ibs"><i class="bi bi-bank me-2"></i>Disbursement</div>
+          <div class="card-body p-4">
+            {% if loan.disbursement_date %}
+              <div class="d-flex gap-3 flex-wrap">
+                <div class="rounded p-3 text-center" style="background:var(--ibs-gold-light);min-width:160px;">
+                  <div class="small text-muted">Disbursed On</div>
+                  <div class="fw-bold" style="color:var(--ibs-green);">
+                    {{ loan.disbursement_date.strftime('%d %b %Y') }}
+                  </div>
+                </div>
+                <div class="rounded p-3 text-center" style="background:var(--ibs-gold-light);min-width:160px;">
+                  <div class="small text-muted">Total Repayable</div>
+                  <div class="fw-bold" style="color:var(--ibs-green);">
+                    {{ currency }} {{ '{:,.0f}'.format(loan.total_repayable) }}
+                  </div>
+                </div>
+                <div class="rounded p-3 text-center" style="background:var(--ibs-gold-light);min-width:160px;">
+                  <div class="small text-muted">Total Paid</div>
+                  <div class="fw-bold" style="color:var(--ibs-green);">
+                    {{ currency }} {{ '{:,.0f}'.format(loan.total_paid) }}
+                  </div>
+                </div>
+                <div class="rounded p-3 text-center" style="background:{% if loan.total_outstanding > 0 %}#fee2e2{% else %}#d1fae5{% endif %};min-width:160px;">
+                  <div class="small text-muted">Outstanding</div>
+                  <div class="fw-bold" style="color:{% if loan.total_outstanding > 0 %}#991b1b{% else %}var(--ibs-green){% endif %};">
+                    {{ currency }} {{ '{:,.0f}'.format(loan.total_outstanding) }}
+                  </div>
+                </div>
+                {% if loan.total_penalties > 0 %}
+                <div class="rounded p-3 text-center" style="background:#fee2e2;min-width:160px;">
+                  <div class="small text-muted">Total Penalties</div>
+                  <div class="fw-bold" style="color:#991b1b;">
+                    {{ currency }} {{ '{:,.0f}'.format(loan.total_penalties) }}
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            {% else %}
+              <p class="text-muted mb-3">This loan is approved but not yet disbursed. Set the disbursement date to generate the repayment schedule.</p>
+              <form method="POST" action="{{ url_for('disburse_loan', loan_id=loan.id) }}" class="d-flex gap-2 align-items-end flex-wrap">
+                <div>
+                  <label class="form-label mb-1 fw-semibold">Disbursement Date</label>
+                  <input type="date" name="disbursement_date" class="form-control"
+                         value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" required>
+                </div>
+                <button type="submit" class="btn btn-ibs-gold">
+                  <i class="bi bi-bank me-1"></i>Disburse &amp; Generate Schedule
+                </button>
+              </form>
+            {% endif %}
+          </div>
         </div>
         {% endif %}
       </div>
+
+      <!-- Approval timeline -->
+      <div class="col-lg-5">
+        <div class="card">
+          <div class="card-header-ibs"><i class="bi bi-clock-history me-2"></i>Approval Timeline</div>
+          <div class="card-body p-4">
+            {% for tier in [1,2,3] %}
+            {% set action   = loan.tier1_action  if tier==1 else (loan.tier2_action  if tier==2 else loan.tier3_action)  %}
+            {% set comment  = loan.tier1_comment if tier==1 else (loan.tier2_comment if tier==2 else loan.tier3_comment) %}
+            {% set acted_at = loan.tier1_at      if tier==1 else (loan.tier2_at      if tier==2 else loan.tier3_at)      %}
+            {% if action == 'approve' %}{% set dot = 'background:var(--ibs-green)' %}
+            {% elif action == 'reject' %}{% set dot = 'background:#dc2626' %}
+            {% elif loan.current_tier == tier and loan.status not in ('Approved','Rejected') %}{% set dot = 'background:var(--ibs-gold)' %}
+            {% else %}{% set dot = 'background:#ccc' %}{% endif %}
+            <div class="timeline-step">
+              <div class="timeline-dot" style="{{ dot }}"></div>
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <span class="fw-semibold" style="font-size:.9rem;color:var(--ibs-green);">{{ tier_labels[tier] }}</span>
+                  {% if action %}
+                    <span class="badge ms-2 tier-badge" style="background:{{ 'var(--ibs-green)' if action=='approve' else '#dc2626' }};color:#fff;">
+                      {{ action|capitalize }}d
+                    </span>
+                  {% elif loan.current_tier == tier and loan.status not in ('Approved','Rejected') %}
+                    <span class="badge ms-2 tier-badge" style="background:var(--ibs-gold);color:#fff;">Pending</span>
+                  {% else %}
+                    <span class="badge ms-2 tier-badge bg-light text-muted border">Waiting</span>
+                  {% endif %}
+                </div>
+                {% if acted_at %}<small class="text-muted">{{ acted_at.strftime('%d %b %Y') }}</small>{% endif %}
+              </div>
+              {% if comment %}<div class="mt-1 text-muted" style="font-size:.84rem;"><i class="bi bi-chat-left-text me-1"></i>{{ comment }}</div>{% endif %}
+            </div>
+            {% endfor %}
+            {% if loan.status == 'Approved' %}
+            <div class="mt-3 p-2 rounded text-center" style="background:#d1fae5;color:#065f46;font-size:.88rem;font-weight:600;">
+              <i class="bi bi-check-circle-fill me-1"></i>Fully approved by all 3 officers.
+            </div>
+            {% elif loan.status == 'Rejected' %}
+            <div class="mt-3 p-2 rounded text-center" style="background:#fee2e2;color:#991b1b;font-size:.88rem;font-weight:600;">
+              <i class="bi bi-x-circle-fill me-1"></i>Application rejected.
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+
+  <!-- ── Tab 2: Repayment Schedule ─────────────────────────────────────── -->
+  {% if loan.disbursement_date %}
+  <div class="tab-pane fade" id="tab-schedule">
+    <div class="card">
+      <div class="card-header-ibs d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-calendar3 me-2"></i>Repayment Schedule</span>
+        <small style="font-weight:400;color:rgba(255,255,255,.75);">
+          {{ loan.repayment_period }} monthly instalments &bull; EMI {{ currency }} {{ '{:,.0f}'.format(loan.monthly_emi) }}
+        </small>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Due Date</th>
+              <th class="text-end">Principal</th>
+              <th class="text-end">Interest</th>
+              <th class="text-end">Instalment</th>
+              <th class="text-end">Paid</th>
+              <th class="text-end">Penalty</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in loan.schedule %}
+            <tr {% if s.status == 'Overdue' %}style="background:#fff5f5;"{% elif s.status == 'Paid' %}style="background:#f0fdf4;"{% endif %}>
+              <td class="text-muted">{{ s.installment_number }}</td>
+              <td>
+                {{ s.due_date.strftime('%d %b %Y') }}
+                {% if s.due_date == today and s.status != 'Paid' %}
+                  <span class="badge bg-warning text-dark ms-1" style="font-size:.7rem;">Today</span>
+                {% endif %}
+              </td>
+              <td class="text-end">{{ '{:,.0f}'.format(s.principal_component or 0) }}</td>
+              <td class="text-end">{{ '{:,.0f}'.format(s.interest_component or 0) }}</td>
+              <td class="text-end fw-semibold">{{ '{:,.0f}'.format(s.amount_due) }}</td>
+              <td class="text-end text-success">{{ '{:,.0f}'.format(s.amount_paid or 0) }}</td>
+              <td class="text-end {% if s.penalty_amount %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                {{ '{:,.0f}'.format(s.penalty_amount or 0) }}
+              </td>
+              <td>
+                {% if s.status == 'Paid' %}<span class="badge badge-paid tier-badge">Paid</span>
+                {% elif s.status == 'Overdue' %}<span class="badge badge-overdue tier-badge">Overdue</span>
+                {% elif s.status == 'Partial' %}<span class="badge badge-partial tier-badge">Partial</span>
+                {% else %}<span class="badge badge-pending tier-badge">Pending</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light fw-semibold">
+            <tr>
+              <td colspan="4">Totals</td>
+              <td class="text-end">{{ '{:,.0f}'.format(loan.total_repayable) }}</td>
+              <td class="text-end text-success">{{ '{:,.0f}'.format(loan.total_paid) }}</td>
+              <td class="text-end text-danger">{{ '{:,.0f}'.format(loan.total_penalties) }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="mt-2 d-flex gap-3 flex-wrap">
+      <small><span class="badge badge-paid tier-badge me-1">Paid</span>Instalment fully cleared</small>
+      <small><span class="badge badge-partial tier-badge me-1">Partial</span>Part payment received</small>
+      <small><span class="badge badge-overdue tier-badge me-1">Overdue</span>Past due date — penalty accruing at {{ loan.penalty_rate }}% / month</small>
+      <small><span class="badge badge-pending tier-badge me-1">Pending</span>Not yet due</small>
+    </div>
+  </div>
+
+  <!-- ── Tab 3: Deposits ───────────────────────────────────────────────── -->
+  <div class="tab-pane fade" id="tab-deposits">
+    <div class="row g-4">
+      <!-- Record deposit form -->
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-header-ibs"><i class="bi bi-plus-circle me-2"></i>Record Deposit</div>
+          <div class="card-body p-4">
+            <form method="POST" action="{{ url_for('record_deposit', loan_id=loan.id) }}">
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Amount ({{ currency }}) <span class="text-danger">*</span></label>
+                <input type="number" name="amount" class="form-control" min="1" step="1" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Deposit Date <span class="text-danger">*</span></label>
+                <input type="date" name="deposit_date" class="form-control"
+                       value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Reference / Receipt No.</label>
+                <input type="text" name="reference" class="form-control" placeholder="e.g. MTN-XXXXXXX">
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Notes</label>
+                <textarea name="notes" class="form-control" rows="2"></textarea>
+              </div>
+              <div class="d-grid">
+                <button type="submit" class="btn btn-ibs-gold">
+                  <i class="bi bi-cash-coin me-1"></i>Record Payment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deposit history -->
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header-ibs d-flex justify-content-between">
+            <span><i class="bi bi-clock-history me-2"></i>Payment History</span>
+            <small style="font-weight:400;color:rgba(255,255,255,.75);">
+              Total: {{ currency }} {{ '{:,.0f}'.format(loan.total_paid) }}
+            </small>
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Date</th>
+                  <th class="text-end">Amount ({{ currency }})</th>
+                  <th>Reference</th>
+                  <th>Notes</th>
+                  <th>Recorded</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for d in loan.deposits|sort(attribute='deposit_date', reverse=True) %}
+                <tr>
+                  <td>{{ d.deposit_date.strftime('%d %b %Y') }}</td>
+                  <td class="text-end fw-semibold text-success">{{ '{:,.0f}'.format(d.amount) }}</td>
+                  <td><span class="text-muted">{{ d.reference or '—' }}</span></td>
+                  <td><small class="text-muted">{{ d.notes or '—' }}</small></td>
+                  <td><small class="text-muted">{{ d.recorded_at.strftime('%d %b %Y') }}</small></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-4">
+                  <i class="bi bi-inbox d-block fs-4 mb-1"></i>No deposits recorded yet.
+                </td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- end tab-content -->
 {% endblock %}
