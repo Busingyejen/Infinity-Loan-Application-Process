@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}IBS Loan Approval{% endblock %}</title>
+  <link href="/static/bootstrap.min.css" rel="stylesheet">
+  <link href="/static/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --ibs-green:  #1B6B35;
+      --ibs-green-dark: #134f27;
+      --ibs-gold:   #C9A034;
+      --ibs-gold-light: #f5e8c0;
+      --ibs-light:  #f4f8f5;
+    }
+    body { background: var(--ibs-light); font-family: 'Segoe UI', Arial, sans-serif; }
+
+    /* Navbar */
+    .ibs-navbar { background: var(--ibs-green); border-bottom: 3px solid var(--ibs-gold); }
+    .ibs-navbar .navbar-brand img { height: 52px; }
+    .ibs-navbar .nav-link, .ibs-navbar .btn-nav { color: #fff !important; }
+    .btn-ibs-outline {
+      border: 1px solid rgba(255,255,255,.6); color: #fff;
+      border-radius: 6px; padding: 5px 16px; font-size: .88rem;
+      text-decoration: none; transition: background .2s;
+    }
+    .btn-ibs-outline:hover { background: rgba(255,255,255,.15); color: #fff; }
+
+    /* Primary button */
+    .btn-ibs {
+      background: var(--ibs-green); color: #fff; border: none;
+    }
+    .btn-ibs:hover { background: var(--ibs-green-dark); color: #fff; }
+
+    /* Gold accent button */
+    .btn-ibs-gold {
+      background: var(--ibs-gold); color: #fff; border: none; font-weight: 600;
+    }
+    .btn-ibs-gold:hover { background: #b08a28; color: #fff; }
+
+    /* Cards */
+    .card { border: none; box-shadow: 0 1px 5px rgba(0,0,0,.09); border-radius: 10px; }
+    .card-header-ibs {
+      background: var(--ibs-green); color: #fff; border-radius: 10px 10px 0 0 !important;
+      padding: 14px 20px; font-weight: 600;
+    }
+
+    /* Section headings inside cards */
+    .section-label {
+      font-size: .7rem; text-transform: uppercase; letter-spacing: .09em;
+      color: var(--ibs-green); font-weight: 700; margin-bottom: 4px;
+    }
+
+    /* Tier badge */
+    .tier-badge { font-size: .73rem; padding: .28em .65em; }
+
+    /* Gold divider */
+    .gold-divider { border-top: 2px solid var(--ibs-gold); margin: 18px 0; }
+
+    /* Timeline */
+    .timeline-step { border-left: 3px solid #d4e8d8; padding-left: 1.25rem;
+                     margin-left: .5rem; padding-bottom: 1rem; position: relative; }
+    .timeline-step:last-child { border-left-color: transparent; padding-bottom: 0; }
+    .timeline-dot { width: 14px; height: 14px; border-radius: 50%;
+                    position: absolute; left: -8.5px; top: 2px; }
+
+    /* Stat cards */
+    .stat-card { border-top: 3px solid var(--ibs-gold); }
+    .stat-num  { font-size: 1.8rem; font-weight: 700; color: var(--ibs-green); }
+
+    /* Footer strip */
+    .page-footer { border-top: 2px solid var(--ibs-gold); padding-top: 10px;
+                   margin-top: 48px; font-size: .8rem; color: #777; text-align: center; }
+  </style>
+</head>
+<body>
+<nav class="navbar ibs-navbar mb-4">
+  <div class="container d-flex align-items-center justify-content-between">
+    <a class="navbar-brand p-0" href="{{ url_for('index') }}">
+      {% if config.get('LOGO_EXISTS', False) or True %}
+        <img src="{{ url_for('static', filename='logo.png') }}"
+             alt="Infinitive Building Society"
+             onerror="this.onerror=null;this.style.display='none';document.getElementById('logo-text').style.display='block';">
+        <span id="logo-text" class="text-white fw-bold fs-5" style="display:none;">IBS</span>
+      {% endif %}
+    </a>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('index') }}"      class="btn-ibs-outline">New Application</a>
+      <a href="{{ url_for('dashboard') }}"  class="btn-ibs-outline">Dashboard</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container pb-5">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</div>
+
+<div class="container page-footer">
+  &copy; {{ now.year if now is defined else 2026 }} Infinitive Building Society &mdash; Turning Goals Into Wealth.
+</div>
+
+<script src="/static/bootstrap.bundle.min.js"></script>
+</body>
+</html>

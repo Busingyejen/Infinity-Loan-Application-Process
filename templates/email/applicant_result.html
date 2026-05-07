@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f8f5; margin: 0; padding: 0; }
+    .wrapper { max-width: 600px; margin: 32px auto; background: #fff; border-radius: 10px;
+               overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.10); }
+    .header-approved { background: #1B6B35; padding: 0; }
+    .header-rejected { background: #991b1b; padding: 0; }
+    .header-inner { padding: 22px 32px 16px; }
+    .header-inner h2 { margin: 0; color: #fff; font-size: 1.05rem; font-weight: 700; }
+    .header-inner p  { margin: 4px 0 0; color: rgba(255,255,255,.75); font-size: .85rem; }
+    .gold-bar { height: 4px; background: #C9A034; }
+    .body { padding: 28px 32px; }
+    .section { font-size: .68rem; text-transform: uppercase; letter-spacing: .09em;
+               color: #1B6B35; font-weight: 700; margin: 0 0 4px; }
+    .value { font-size: .95rem; font-weight: 600; color: #111; margin-bottom: 14px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+    .divider { border: none; border-top: 2px solid #C9A034; margin: 20px 0; }
+    .highlight-box { border-radius: 6px; padding: 14px 18px; margin: 20px 0; }
+    .approved-box { background: #d1fae5; border-left: 4px solid #1B6B35; }
+    .rejected-box { background: #fee2e2; border-left: 4px solid #dc2626; }
+    .approved-box p { color: #065f46; margin: 0; font-size: .92rem; }
+    .rejected-box p { color: #991b1b; margin: 0; font-size: .92rem; }
+    .note-box { background: #f5e8c0; border-left: 4px solid #C9A034;
+                border-radius: 4px; padding: 10px 14px; font-size: .88rem; color: #555; }
+    .footer { background: #f4f8f5; padding: 16px 32px; font-size: .78rem;
+              color: #888; border-top: 2px solid #C9A034; text-align: center; }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  {% if loan.status == 'Approved' %}
+  <div class="header-approved">
+    <div class="header-inner">
+      <h2>&#10003; Your Loan Application Has Been Approved</h2>
+      <p>Infinitive Building Society &mdash; Application #{{ loan.id }}</p>
+    </div>
+    <div class="gold-bar"></div>
+  </div>
+  {% else %}
+  <div class="header-rejected">
+    <div class="header-inner">
+      <h2>&#10007; Your Loan Application Was Not Approved</h2>
+      <p>Infinitive Building Society &mdash; Application #{{ loan.id }}</p>
+    </div>
+    <div class="gold-bar"></div>
+  </div>
+  {% endif %}
+
+  <!-- Body -->
+  <div class="body">
+    <p style="color:#444;">Dear <strong>{{ loan.applicant_name }}</strong>,</p>
+
+    {% if loan.status == 'Approved' %}
+    <div class="highlight-box approved-box">
+      <p>
+        <strong>Congratulations!</strong> Your loan application has been reviewed and
+        <strong>approved</strong> by all three loan officers. Our team will contact you
+        shortly regarding disbursement and next steps.
+      </p>
+    </div>
+    {% else %}
+    <div class="highlight-box rejected-box">
+      <p>
+        After careful review by our loan officers, we regret to inform you that your
+        application has <strong>not been approved</strong> at this time. You are welcome
+        to visit any of our branches for guidance or to re-apply in the future.
+      </p>
+    </div>
+    {% endif %}
+
+    <hr class="divider">
+    <p class="section">Application Summary</p>
+
+    <div class="grid">
+      <div>
+        <p class="section" style="margin-top:10px;">Loan Type</p>
+        <div class="value">{{ loan.loan_type }}</div>
+      </div>
+      <div>
+        <p class="section" style="margin-top:10px;">Amount Requested</p>
+        <div class="value">{{ currency }} {{ "{:,.0f}".format(loan.amount) }}</div>
+      </div>
+      <div>
+        <p class="section">Interest Rate</p>
+        <div class="value">{{ loan.interest_rate }}% p.a.</div>
+      </div>
+      <div>
+        <p class="section">Processing Fees</p>
+        <div class="value">{{ currency }} {{ "{:,.0f}".format(loan.processing_fees) }}</div>
+      </div>
+    </div>
+
+    {% set last_comment = loan.tier3_comment or loan.tier2_comment or loan.tier1_comment %}
+    {% if last_comment %}
+    <hr class="divider">
+    <p class="section">Reviewer Note</p>
+    <div class="note-box">{{ last_comment }}</div>
+    {% endif %}
+
+    <hr class="divider">
+    <p style="font-size:.85rem;color:#666;margin:0;">
+      For any questions, please visit your nearest branch or contact your relationship manager,
+      quoting application reference <strong>#{{ loan.id }}</strong>.
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <strong>Infinitive Building Society</strong> &mdash; Turning Goals Into Wealth.<br>
+    This is an automated message. Please do not reply to this email.
+  </div>
+
+</div>
+</body>
+</html>

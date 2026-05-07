@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Loan #{{ loan.id }} — IBS{% endblock %}
+{% block content %}
+
+<div class="mb-3">
+  <a href="{{ url_for('dashboard') }}" class="text-decoration-none" style="color:var(--ibs-green);">
+    <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+  </a>
+</div>
+
+{% set color_map = {
+  'Pending Tier 1': '#d97706',
+  'Pending Tier 2': '#0891b2',
+  'Pending Tier 3': '#1B6B35',
+  'Approved':       '#15803d',
+  'Rejected':       '#dc2626'
+} %}
+
+<div class="row g-4">
+  <!-- Loan info -->
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header-ibs d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-file-earmark-text me-2"></i>Application #{{ loan.id }}</span>
+        <span class="badge" style="background:{{ color_map.get(loan.status,'#666') }};font-size:.82rem;">
+          {{ loan.status }}
+        </span>
+      </div>
+      <div class="card-body p-4">
+        <small class="text-muted">Submitted {{ loan.submitted_at.strftime('%d %b %Y, %H:%M') }} UTC</small>
+
+        <hr class="gold-divider">
+        <p class="section-label">Applicant</p>
+        <div class="row mb-3">
+          <div class="col-sm-6 fw-semibold" style="color:var(--ibs-green);">{{ loan.applicant_name }}</div>
+          <div class="col-sm-6 text-muted">{{ loan.applicant_email }}</div>
+        </div>
+
+        <hr class="gold-divider">
+        <p class="section-label">Loan Details</p>
+        <div class="row g-3 mb-3">
+          <div class="col-6 col-sm-3">
+            <div class="rounded p-2 text-center" style="background:var(--ibs-gold-light);">
+              <div class="small text-muted">Type</div>
+              <div class="fw-semibold" style="color:var(--ibs-green);">{{ loan.loan_type }}</div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="rounded p-2 text-center" style="background:var(--ibs-gold-light);">
+              <div class="small text-muted">Amount</div>
+              <div class="fw-semibold" style="color:var(--ibs-green);">{{ currency }} {{ "{:,.0f}".format(loan.amount) }}</div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="rounded p-2 text-center" style="background:var(--ibs-gold-light);">
+              <div class="small text-muted">Rate</div>
+              <div class="fw-semibold" style="color:var(--ibs-green);">{{ loan.interest_rate }}% p.a.</div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="rounded p-2 text-center" style="background:var(--ibs-gold-light);">
+              <div class="small text-muted">Fees</div>
+              <div class="fw-semibold" style="color:var(--ibs-green);">{{ currency }} {{ "{:,.0f}".format(loan.processing_fees) }}</div>
+            </div>
+          </div>
+        </div>
+
+        {% if loan.purpose %}
+        <p class="section-label">Purpose</p>
+        <p class="text-muted mb-0">{{ loan.purpose }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Approval timeline -->
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header-ibs">
+        <i class="bi bi-clock-history me-2"></i>Approval Timeline
+      </div>
+      <div class="card-body p-4">
+        {% for tier in [1, 2, 3] %}
+        {% set action   = loan.tier1_action  if tier==1 else (loan.tier2_action  if tier==2 else loan.tier3_action)  %}
+        {% set comment  = loan.tier1_comment if tier==1 else (loan.tier2_comment if tier==2 else loan.tier3_comment) %}
+        {% set acted_at = loan.tier1_at      if tier==1 else (loan.tier2_at      if tier==2 else loan.tier3_at)      %}
+
+        {% if action == 'approve' %}
+          {% set dot_color = 'background:var(--ibs-green)' %}
+        {% elif action == 'reject' %}
+          {% set dot_color = 'background:#dc2626' %}
+        {% elif loan.current_tier == tier and loan.status not in ('Approved','Rejected') %}
+          {% set dot_color = 'background:var(--ibs-gold)' %}
+        {% else %}
+          {% set dot_color = 'background:#ccc' %}
+        {% endif %}
+
+        <div class="timeline-step">
+          <div class="timeline-dot" style="{{ dot_color }}"></div>
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <span class="fw-semibold" style="font-size:.9rem;color:var(--ibs-green);">
+                {{ tier_labels[tier] }}
+              </span>
+              {% if action %}
+                <span class="badge ms-2 tier-badge"
+                  style="background:{{ 'var(--ibs-green)' if action=='approve' else '#dc2626' }};color:#fff;">
+                  {{ action|capitalize }}d
+                </span>
+              {% elif loan.current_tier == tier and loan.status not in ('Approved','Rejected') %}
+                <span class="badge ms-2 tier-badge" style="background:var(--ibs-gold);color:#fff;">Pending</span>
+              {% else %}
+                <span class="badge ms-2 tier-badge bg-light text-muted border">Waiting</span>
+              {% endif %}
+            </div>
+            {% if acted_at %}
+            <small class="text-muted">{{ acted_at.strftime('%d %b %Y') }}</small>
+            {% endif %}
+          </div>
+          {% if comment %}
+          <div class="mt-1 text-muted" style="font-size:.84rem;">
+            <i class="bi bi-chat-left-text me-1"></i>{{ comment }}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        {% if loan.status == 'Approved' %}
+        <div class="mt-3 p-2 rounded text-center"
+             style="background:#d1fae5;color:#065f46;font-size:.88rem;font-weight:600;">
+          <i class="bi bi-check-circle-fill me-1"></i>Fully approved by all 3 officers.
+        </div>
+        {% elif loan.status == 'Rejected' %}
+        <div class="mt-3 p-2 rounded text-center"
+             style="background:#fee2e2;color:#991b1b;font-size:.88rem;font-weight:600;">
+          <i class="bi bi-x-circle-fill me-1"></i>Application rejected.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

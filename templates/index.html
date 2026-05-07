@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}New Loan Application — IBS{% endblock %}
+{% block content %}
+
+<!-- Page heading -->
+<div class="d-flex align-items-center mb-4 gap-3">
+  <div style="width:5px;height:36px;background:var(--ibs-gold);border-radius:3px;"></div>
+  <div>
+    <h4 class="mb-0" style="color:var(--ibs-green);">New Loan Application</h4>
+    <small class="text-muted">Complete all required fields and submit for approval.</small>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Form -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header-ibs">
+        <i class="bi bi-file-earmark-text me-2"></i>Application Form
+      </div>
+      <div class="card-body p-4">
+        <form method="POST" novalidate>
+
+          <p class="section-label">Applicant Details</p>
+          <div class="row g-3 mb-4">
+            <div class="col-sm-6">
+              <label class="form-label">Full Name <span class="text-danger">*</span></label>
+              <input type="text" name="applicant_name" class="form-control" required>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label">Email Address <span class="text-danger">*</span></label>
+              <input type="email" name="applicant_email" class="form-control" required>
+            </div>
+          </div>
+
+          <hr class="gold-divider">
+          <p class="section-label">Loan Details</p>
+          <div class="row g-3 mb-4">
+            <div class="col-sm-6">
+              <label class="form-label">Loan Type <span class="text-danger">*</span></label>
+              <select name="loan_type" class="form-select" required>
+                <option value="" disabled selected>Select type…</option>
+                {% for lt in loan_types %}
+                  <option value="{{ lt }}">{{ lt }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label">Loan Amount <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text fw-semibold" style="background:var(--ibs-gold-light);color:var(--ibs-green);">{{ currency }}</span>
+                <input type="number" name="amount" class="form-control" min="0" step="0.01" placeholder="0.00" required>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label">Interest Rate (% p.a.) <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <input type="number" name="interest_rate" class="form-control" min="0" step="0.01" placeholder="0.00" required>
+                <span class="input-group-text" style="background:var(--ibs-gold-light);color:var(--ibs-green);">%</span>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label">Processing Fees <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text fw-semibold" style="background:var(--ibs-gold-light);color:var(--ibs-green);">{{ currency }}</span>
+                <input type="number" name="processing_fees" class="form-control" min="0" step="0.01" placeholder="0.00" required>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Purpose / Notes</label>
+              <textarea name="purpose" class="form-control" rows="3"
+                placeholder="Briefly describe the purpose of this loan…"></textarea>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">Applications go through 3 loan officer approvals.</small>
+            <button type="submit" class="btn btn-ibs px-4">
+              <i class="bi bi-send me-1"></i>Submit Application
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Approval flow sidebar -->
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header-ibs">
+        <i class="bi bi-diagram-3 me-2"></i>Approval Flow
+      </div>
+      <div class="card-body p-3">
+        {% for tier, label, desc in [
+            ('I',  'Loan Officer I', 'Initial review & eligibility check'),
+            ('2',  'Loan Officer 2', 'Secondary credit assessment'),
+            ('3',  'Loan Officer 3', 'Final approval & disbursement'),
+        ] %}
+        <div class="d-flex align-items-start mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+          <div class="me-3 text-center">
+            <div style="width:36px;height:36px;background:var(--ibs-green);color:#fff;
+                        border-radius:50%;line-height:36px;font-weight:700;font-size:.9rem;">{{ tier }}</div>
+          </div>
+          <div>
+            <div class="fw-semibold" style="color:var(--ibs-green);font-size:.92rem;">{{ label }}</div>
+            <small class="text-muted">{{ desc }}</small>
+          </div>
+        </div>
+        {% endfor %}
+        <div class="mt-2 p-2 rounded" style="background:var(--ibs-gold-light);">
+          <small style="color:var(--ibs-green);">
+            <i class="bi bi-info-circle me-1"></i>
+            Each officer receives a secure email link. Rejection at any stage closes the application.
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

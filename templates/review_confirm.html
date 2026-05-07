@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Review Loan #{{ loan.id }} — IBS{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header-ibs">
+        {% if action == 'approve' %}
+          <i class="bi bi-check-circle me-2"></i>Approve Loan #{{ loan.id }}
+        {% else %}
+          <i class="bi bi-x-circle me-2"></i>Reject Loan #{{ loan.id }}
+        {% endif %}
+      </div>
+      <div class="card-body p-4">
+        <p class="text-muted mb-4">
+          You are acting as <strong style="color:var(--ibs-green);">{{ tier_label }}</strong>
+          (Tier {{ tier }} of 3).
+        </p>
+
+        <!-- Loan summary -->
+        <div class="rounded p-3 mb-4" style="background:var(--ibs-gold-light);">
+          <div class="row g-2 text-center mb-2">
+            <div class="col-6 col-sm-3">
+              <div class="small text-muted">Type</div>
+              <div class="fw-semibold" style="color:var(--ibs-green);">{{ loan.loan_type }}</div>
+            </div>
+            <div class="col-6 col-sm-3">
+              <div class="small text-muted">Amount</div>
+              <div class="fw-semibold" style="color:var(--ibs-green);">{{ currency }} {{ "{:,.0f}".format(loan.amount) }}</div>
+            </div>
+            <div class="col-6 col-sm-3">
+              <div class="small text-muted">Rate</div>
+              <div class="fw-semibold" style="color:var(--ibs-green);">{{ loan.interest_rate }}%</div>
+            </div>
+            <div class="col-6 col-sm-3">
+              <div class="small text-muted">Fees</div>
+              <div class="fw-semibold" style="color:var(--ibs-green);">{{ currency }} {{ "{:,.0f}".format(loan.processing_fees) }}</div>
+            </div>
+          </div>
+          <hr style="border-color:var(--ibs-gold);margin:.5rem 0;">
+          <div class="small">
+            <strong>Applicant:</strong> {{ loan.applicant_name }} &mdash; {{ loan.applicant_email }}
+          </div>
+          {% if loan.purpose %}
+          <div class="small text-muted mt-1"><strong>Purpose:</strong> {{ loan.purpose }}</div>
+          {% endif %}
+        </div>
+
+        <form method="POST">
+          <div class="mb-4">
+            <label class="form-label fw-semibold">
+              Comment <span class="text-muted fw-normal">(optional)</span>
+            </label>
+            <textarea name="comment" class="form-control" rows="3"
+              placeholder="Add a note for the approval record…"></textarea>
+          </div>
+          <div class="d-grid gap-2">
+            <button type="submit"
+              class="btn btn-lg fw-semibold"
+              style="background:{{ 'var(--ibs-green)' if action=='approve' else '#dc2626' }};color:#fff;">
+              {% if action == 'approve' %}
+                <i class="bi bi-check-lg me-1"></i>Confirm Approval
+              {% else %}
+                <i class="bi bi-x-lg me-1"></i>Confirm Rejection
+              {% endif %}
+            </button>
+            <a href="{{ url_for('loan_detail', loan_id=loan.id) }}"
+               class="btn btn-outline-secondary">
+              Cancel — go back
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

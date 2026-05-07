@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — IBS Loan Applications{% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <div style="width:5px;height:36px;background:var(--ibs-gold);border-radius:3px;"></div>
+    <div>
+      <h4 class="mb-0" style="color:var(--ibs-green);">Loan Applications</h4>
+      <small class="text-muted">All submitted applications and their approval status.</small>
+    </div>
+  </div>
+  <a href="{{ url_for('index') }}" class="btn btn-ibs-gold px-3">
+    <i class="bi bi-plus-lg me-1"></i>New Application
+  </a>
+</div>
+
+<!-- Summary stat cards -->
+{% set counts = {'Pending Tier 1': 0, 'Pending Tier 2': 0, 'Pending Tier 3': 0, 'Approved': 0, 'Rejected': 0} %}
+{% for loan in loans %}{% if loan.status in counts %}{% set _ = counts.update({loan.status: counts[loan.status] + 1}) %}{% endif %}{% endfor %}
+
+<div class="row g-3 mb-4">
+  {% for label, icon, color in [
+      ('Pending Tier 1', 'bi-hourglass-split',  '#d97706'),
+      ('Pending Tier 2', 'bi-arrow-right-circle','#0891b2'),
+      ('Pending Tier 3', 'bi-shield-check',      '#1B6B35'),
+      ('Approved',       'bi-check-circle-fill', '#15803d'),
+      ('Rejected',       'bi-x-circle-fill',     '#dc2626'),
+  ] %}
+  <div class="col-6 col-md">
+    <div class="card stat-card p-3 text-center">
+      <i class="bi {{ icon }} mb-1" style="font-size:1.4rem;color:{{ color }};"></i>
+      <div class="stat-num">{{ counts[label] }}</div>
+      <div class="small text-muted">{{ label }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="card-header-ibs d-flex align-items-center justify-content-between">
+    <span><i class="bi bi-table me-2"></i>All Applications</span>
+    <small style="font-weight:400;color:rgba(255,255,255,.7);">{{ loans|length }} record(s)</small>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th style="color:var(--ibs-green);">#</th>
+          <th style="color:var(--ibs-green);">Applicant</th>
+          <th style="color:var(--ibs-green);">Loan Type</th>
+          <th class="text-end" style="color:var(--ibs-green);">Amount ({{ currency }})</th>
+          <th class="text-end" style="color:var(--ibs-green);">Rate</th>
+          <th class="text-end" style="color:var(--ibs-green);">Fees ({{ currency }})</th>
+          <th style="color:var(--ibs-green);">Status</th>
+          <th style="color:var(--ibs-green);">Submitted</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for loan in loans %}
+        <tr>
+          <td class="text-muted fw-semibold">#{{ loan.id }}</td>
+          <td>
+            <div class="fw-semibold" style="color:var(--ibs-green);">{{ loan.applicant_name }}</div>
+            <small class="text-muted">{{ loan.applicant_email }}</small>
+          </td>
+          <td>{{ loan.loan_type }}</td>
+          <td class="text-end fw-semibold">{{ "{:,.0f}".format(loan.amount) }}</td>
+          <td class="text-end">{{ loan.interest_rate }}%</td>
+          <td class="text-end">{{ "{:,.0f}".format(loan.processing_fees) }}</td>
+          <td>
+            {% set color_map = {
+              'Pending Tier 1': '#d97706',
+              'Pending Tier 2': '#0891b2',
+              'Pending Tier 3': '#1B6B35',
+              'Approved':       '#15803d',
+              'Rejected':       '#dc2626'
+            } %}
+            <span class="badge tier-badge"
+              style="background:{{ color_map.get(loan.status,'#666') }};color:#fff;">
+              {{ loan.status }}
+            </span>
+          </td>
+          <td><small class="text-muted">{{ loan.submitted_at.strftime('%d %b %Y') }}</small></td>
+          <td>
+            <a href="{{ url_for('loan_detail', loan_id=loan.id) }}"
+               class="btn btn-sm btn-outline-secondary" title="View details">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" class="text-center text-muted py-5">
+            <i class="bi bi-inbox fs-2 d-block mb-2"></i>No applications yet.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

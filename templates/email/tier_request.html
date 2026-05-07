@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f8f5; margin: 0; padding: 0; }
+    .wrapper { max-width: 600px; margin: 32px auto; background: #fff; border-radius: 10px;
+               overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.10); }
+    .header { background: #1B6B35; padding: 0; }
+    .header-top { padding: 20px 32px 16px; }
+    .header-top h2 { margin: 0; color: #fff; font-size: 1.05rem; font-weight: 700; }
+    .header-top p  { margin: 4px 0 0; color: rgba(255,255,255,.75); font-size: .85rem; }
+    .gold-bar { height: 4px; background: #C9A034; }
+    .body { padding: 28px 32px; }
+    .section { font-size: .68rem; text-transform: uppercase; letter-spacing: .09em;
+               color: #1B6B35; font-weight: 700; margin: 0 0 4px; }
+    .value { font-size: .95rem; font-weight: 600; color: #111; margin-bottom: 14px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+    .divider { border: none; border-top: 2px solid #C9A034; margin: 20px 0; }
+    .highlight-box { background: #f5e8c0; border-left: 4px solid #C9A034;
+                     border-radius: 4px; padding: 12px 16px; margin-bottom: 20px; }
+    .tier-pill { display: inline-block; background: #1B6B35; color: #fff;
+                 border-radius: 20px; padding: 3px 14px; font-size: .8rem; margin-bottom: 10px; }
+    .btn { display: inline-block; padding: 13px 30px; border-radius: 7px;
+           text-decoration: none; font-weight: 700; font-size: .95rem; }
+    .btn-approve { background: #1B6B35; color: #fff; }
+    .btn-reject  { background: #dc2626; color: #fff; }
+    .footer { background: #f4f8f5; padding: 16px 32px; font-size: .78rem;
+              color: #888; border-top: 2px solid #C9A034; text-align: center; }
+    .prev-tier { background: #f0fdf4; border-radius: 6px; padding: 10px 14px;
+                 font-size: .85rem; color: #444; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <h2><i>Infinitive Building Society</i> — Loan Approval Required</h2>
+      <p>Action needed from: <strong>{{ tier_label }}</strong> &nbsp;|&nbsp; Tier {{ tier }} of 3</p>
+    </div>
+    <div class="gold-bar"></div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+    <span class="tier-pill">Tier {{ tier }} of 3</span>
+    <p style="color:#444;font-size:.92rem;margin-bottom:20px;">
+      A loan application is awaiting your review. Please assess the details below and click
+      <strong>Approve</strong> or <strong>Reject</strong>.
+    </p>
+
+    <hr class="divider">
+
+    <div class="grid">
+      <div>
+        <p class="section">Applicant</p>
+        <div class="value">{{ loan.applicant_name }}</div>
+      </div>
+      <div>
+        <p class="section">Email</p>
+        <div class="value" style="font-weight:400;color:#555;">{{ loan.applicant_email }}</div>
+      </div>
+      <div>
+        <p class="section">Loan Type</p>
+        <div class="value">{{ loan.loan_type }}</div>
+      </div>
+      <div>
+        <p class="section">Application #</p>
+        <div class="value">#{{ loan.id }}</div>
+      </div>
+    </div>
+
+    <div class="highlight-box">
+      <div class="grid">
+        <div>
+          <p class="section" style="color:#92400e;">Loan Amount</p>
+          <div class="value">{{ currency }} {{ "{:,.0f}".format(loan.amount) }}</div>
+        </div>
+        <div>
+          <p class="section" style="color:#92400e;">Interest Rate</p>
+          <div class="value">{{ loan.interest_rate }}% p.a.</div>
+        </div>
+        <div>
+          <p class="section" style="color:#92400e;">Processing Fees</p>
+          <div class="value">{{ currency }} {{ "{:,.0f}".format(loan.processing_fees) }}</div>
+        </div>
+        <div>
+          <p class="section" style="color:#92400e;">Submitted</p>
+          <div class="value" style="font-weight:400;color:#555;">{{ loan.submitted_at.strftime('%d %b %Y') }}</div>
+        </div>
+      </div>
+      {% if loan.purpose %}
+      <p class="section" style="color:#92400e;margin-top:8px;">Purpose</p>
+      <div style="color:#555;font-size:.9rem;">{{ loan.purpose }}</div>
+      {% endif %}
+    </div>
+
+    {% if tier > 1 %}
+    <p class="section">Previous Decisions</p>
+    {% if tier >= 2 and loan.tier1_action %}
+    <div class="prev-tier">
+      <strong>Loan Officer I:</strong>
+      {{ loan.tier1_action|capitalize }}d
+      {% if loan.tier1_comment %} &mdash; {{ loan.tier1_comment }}{% endif %}
+    </div>
+    {% endif %}
+    {% if tier >= 3 and loan.tier2_action %}
+    <div class="prev-tier">
+      <strong>Loan Officer 2:</strong>
+      {{ loan.tier2_action|capitalize }}d
+      {% if loan.tier2_comment %} &mdash; {{ loan.tier2_comment }}{% endif %}
+    </div>
+    {% endif %}
+    <hr class="divider">
+    {% endif %}
+
+    <p style="font-size:.9rem;color:#444;margin-bottom:22px;">
+      Click a button below to record your decision. You will be asked to add an optional comment before confirming.
+    </p>
+
+    <a href="{{ approve_url }}" class="btn btn-approve" style="margin-right:14px;">&#10003; Approve</a>
+    <a href="{{ reject_url }}"  class="btn btn-reject">&#10007; Reject</a>
+
+    <p style="margin-top:22px;font-size:.78rem;color:#aaa;">
+      These links are unique to you, expire in 7 days, and can only be used once.
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <strong>Infinitive Building Society</strong> &mdash; Turning Goals Into Wealth.<br>
+    This is an automated message. Please do not reply to this email.
+  </div>
+</div>
+</body>
+</html>
